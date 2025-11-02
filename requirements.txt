@@ -1,0 +1,29 @@
+# Core Framework
+fastapi
+uvicorn[standard]
+pydantic
+pydantic-settings
+
+# LLM & AI
+openai
+langchain
+langchain-openai
+langchain-community
+langgraph
+
+# Vector Database
+chromadb
+
+# MCP
+fastmcp
+
+# HTTP Client
+httpx
+
+# Templates
+jinja2
+
+# Environment
+python-dotenv
+# Production Server (optional)
+gunicorn

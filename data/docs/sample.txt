@@ -1,0 +1,44 @@
+JARVIS PROJECT DOCUMENTATION
+
+=== Overview ===
+Jarvis is an AI assistant built with FastAPI, OpenAI, and ChromaDB. It combines RAG (Retrieval Augmented Generation) with tool integration to provide intelligent responses based on your documents and can perform actions like scheduling calendar events.
+
+=== Architecture ===
+The system consists of three main components:
+1. FastAPI Backend - Handles web requests and orchestrates the AI logic
+2. OpenAI GPT-4o-mini - Provides natural language understanding and generation
+3. ChromaDB Vector Database - Stores document embeddings for semantic search
+
+=== RAG Implementation ===
+Documents are split into chunks of 500 characters with 50 character overlap. Each chunk is converted to embeddings using OpenAI's text-embedding-3-small model. When a user asks a question, we:
+1. Convert the query to an embedding
+2. Find the top 3 most similar document chunks
+3. Provide those chunks as context to the LLM
+4. Generate a response based on the retrieved context
+
+=== Calendar Tool ===
+The calendar tool allows scheduling events through natural language. Events are stored in JSON format with fields for title, date, time, and description. Users can say things like "Schedule a meeting tomorrow at 3pm" and Jarvis will parse the intent and create the event.
+
+=== Team Members ===
+Alice Johnson - Lead AI Engineer, specializing in LangChain and RAG systems
+Bob Smith - Backend Developer, expert in FastAPI and async Python
+Carol White - Frontend Developer, creates beautiful HTMX interfaces
+David Chen - DevOps Engineer, manages deployment and infrastructure
+
+=== Project Goals ===
+Our goal is to create a production-ready AI assistant that can:
+- Search through large document collections efficiently
+- Understand natural language commands
+- Execute actions through tool integrations
+- Maintain conversation context and memory
+- Scale to handle multiple users simultaneously
+
+=== Technical Stack ===
+Backend: Python 3.11+, FastAPI, Pydantic
+AI/ML: OpenAI API, LangChain, ChromaDB
+Frontend: HTMX, Tailwind CSS, Jinja2 Templates
+Tools: FastMCP for tool integration
+Deployment: Uvicorn, Docker (planned)
+
+=== Future Enhancements ===
+Planned features include email integration, voice interface, multi-user sessions with authentication, integration with external APIs, and mobile app development. We're also exploring advanced features like function calling and agent-based workflows.

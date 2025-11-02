@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jarvis AI Assistant</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- HTMX -->
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .chat-container {
+            height: calc(100vh - 200px);
+            overflow-y: auto;
+            scroll-behavior: smooth;
+        }
+        
+        .message {
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .user-message {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .assistant-message {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+        
+        .error-message {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+        }
+        
+        .message-content {
+            word-wrap: break-word;
+            white-space: pre-wrap;
+        }
+        
+        /* Loading animation */
+        .htmx-request .loading-indicator {
+            display: inline-block;
+        }
+        
+        .loading-indicator {
+            display: none;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .pulse {
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body class="font-sans antialiased">
+    <div class="min-h-screen flex flex-col items-center justify-center p-4">
+        <div class="w-full max-w-4xl bg-white rounded-2xl shadow-2xl overflow-hidden">
+            
+            <!-- Header -->
+            <div class="bg-gradient-to-r from-purple-600 to-pink-600 p-6 text-white">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h1 class="text-3xl font-bold">🤖 Jarvis</h1>
+                        <p class="text-purple-100 text-sm mt-1">Your AI Assistant</p>
+                    </div>
+                    <button 
+                        hx-post="/clear" 
+                        hx-swap="none"
+                        class="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg text-sm font-medium transition"
+                    >
+                        🔄 Clear History
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Chat Container -->
+            <div id="chat-container" class="chat-container p-6 space-y-4 bg-gray-50">
+                <div class="message assistant-message rounded-xl p-4 text-white max-w-2xl">
+                    <div class="message-content">
+                        👋 Hello! I'm Jarvis, your AI assistant. I can help you search documents, manage your calendar, and answer questions. How can I assist you today?
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Input Form -->
+            <div class="p-6 bg-white border-t border-gray-200">
+                <form 
+                    hx-post="/chat" 
+                    hx-target="#chat-container" 
+                    hx-swap="beforeend"
+                    hx-on::after-request="this.reset(); document.getElementById('chat-container').scrollTop = document.getElementById('chat-container').scrollHeight;"
+                    class="flex gap-3"
+                >
+                    <input 
+                        type="text" 
+                        name="message" 
+                        placeholder="Type your message..." 
+                        required
+                        maxlength="2000"
+                        class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        autocomplete="off"
+                    />
+                    <button 
+                        type="submit" 
+                        class="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-8 py-3 rounded-lg font-medium hover:from-purple-700 hover:to-pink-700 transition shadow-lg hover:shadow-xl"
+                    >
+                        Send
+                        <span class="loading-indicator ml-2 pulse">⏳</span>
+                    </button>
+                </form>
+                
+                <p class="text-xs text-gray-500 mt-2 text-center">
+                    Powered by OpenAI GPT-4o-mini • Press Enter to send
+                </p>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Auto-scroll chat on new messages
+        document.body.addEventListener('htmx:afterSwap', function(event) {
+            const container = document.getElementById('chat-container');
+            container.scrollTop = container.scrollHeight;
+        });
+        
+        // Allow Enter key to submit
+        document.querySelector('input[name="message"]').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                this.closest('form').dispatchEvent(new Event('submit', {cancelable: true, bubbles: true}));
+            }
+        });
+        
+        // Show notification on clear
+        document.body.addEventListener('htmx:afterRequest', function(event) {
+            if (event.detail.pathInfo.requestPath === '/clear') {
+                // Clear the chat container except the welcome message
+                const container = document.getElementById('chat-container');
+                const welcomeMsg = container.querySelector('.message');
+                container.innerHTML = '';
+                container.appendChild(welcomeMsg);
+                
+                // Show brief notification
+                const notification = document.createElement('div');
+                notification.className = 'message assistant-message rounded-xl p-4 text-white max-w-2xl';
+                notification.innerHTML = '<div class="message-content">✨ History cleared! How can I help you?</div>';
+                container.appendChild(notification);
+            }
+        });
+    </script>
+</body>
+</html>
