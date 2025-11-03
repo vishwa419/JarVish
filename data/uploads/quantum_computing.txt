@@ -1,0 +1,6 @@
+
+Quantum computing represents a paradigm shift in computational capabilities.
+Unlike classical computers that use bits, quantum computers use qubits.
+Qubits can exist in superposition, allowing quantum computers to process multiple states simultaneously.
+Major tech companies like IBM, Google, and Microsoft are investing heavily in quantum research.
+Quantum supremacy was demonstrated by Google in 2019.

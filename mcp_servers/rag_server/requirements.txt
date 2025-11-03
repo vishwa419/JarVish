@@ -1,0 +1,6 @@
+fastmcp==2.13.0.2
+qdrant-client
+openai
+pypdf
+python-docx
+uvicorn

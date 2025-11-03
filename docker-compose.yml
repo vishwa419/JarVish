@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  # Qdrant Vector Database
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: jarvis-qdrant
+    ports:
+      - "6333:6333"  # HTTP API
+      - "6334:6334"  # gRPC API
+    volumes:
+      - ./data/qdrant:/qdrant/storage
+    networks:
+      - jarvis-network
+    restart: unless-stopped
+
+  # RAG MCP Server
+  rag-mcp:
+    build:
+      context: ./mcp_servers/rag_server
+      dockerfile: Dockerfile
+    container_name: jarvis-rag-mcp
+    ports:
+      - "8001:8001"
+    volumes:
+      - ./data/uploads:/app/uploads
+      - ./mcp_servers/rag_server:/app
+    environment:
+      - QDRANT_HOST=qdrant
+      - QDRANT_PORT=6333
+      - QDRANT_COLLECTION=jarvis_documents
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - EMBEDDING_MODEL=text-embedding-3-small
+      - CHUNK_SIZE=512
+      - CHUNK_OVERLAP=50
+      - LOG_LEVEL=INFO
+    depends_on:
+      - qdrant
+    networks:
+      - jarvis-network
+    restart: unless-stopped
+
+networks:
+  jarvis-network:
+    driver: bridge

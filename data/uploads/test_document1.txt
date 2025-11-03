@@ -1,0 +1,6 @@
+
+Artificial Intelligence (AI) is transforming the world.
+Machine learning is a subset of AI focused on learning from data.
+Natural Language Processing enables computers to understand human language.
+Computer vision allows machines to interpret visual information.
+Deep learning uses neural networks with multiple layers.

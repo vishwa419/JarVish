@@ -65,6 +65,8 @@ class MCPClientWrapper:
     async def _async_call_tool(self, tool_name: str, arguments: Dict[str, Any]) -> str:
         """Call tool using fresh context."""
         async with self.mcp_client:
+            arguments = json.loads(arguments)
+            logger.info(f"calling {tool_name} with {arguments.dtype}")
             result = await self.mcp_client.call_tool(tool_name, arguments)
             
             # Extract text from result
