@@ -4,13 +4,22 @@ Aggregates tools from all servers and handles routing.
 """
 import logging
 import json
+from pydantic import BaseModel
 import asyncio
+import nest_asyncio
 from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
-from langchain.tools import Tool
+from langchain.tools import StructuredTool
+from pydantic import Field, create_model
 from fastmcp import Client
 
+# Apply nest_asyncio to allow nested event loops
+nest_asyncio.apply()
+
 logger = logging.getLogger(__name__)
+
+class EmptyArgs(BaseModel):
+    pass
 
 
 @dataclass
@@ -96,24 +105,9 @@ class MCPClientWrapper:
     def call_tool(self, tool_name: str, arguments: Dict[str, Any]) -> str:
         """
         Synchronous wrapper for calling tools.
-        Detects if event loop is running and handles appropriately.
+        Uses nest_asyncio to handle event loop conflicts.
         """
-        try:
-            loop = asyncio.get_running_loop()
-            # We're in an async context - can't use asyncio.run()
-            import concurrent.futures
-            
-            # Create a new thread to run the async call
-            with concurrent.futures.ThreadPoolExecutor() as executor:
-                future = executor.submit(
-                    asyncio.run,
-                    self._async_call_tool(tool_name, arguments)
-                )
-                return future.result()
-                
-        except RuntimeError:
-            # No event loop running - safe to use asyncio.run()
-            return asyncio.run(self._async_call_tool(tool_name, arguments))
+        return asyncio.run(self._async_call_tool(tool_name, arguments))
 
 
 class MultiMCPClientWrapper:
@@ -235,16 +229,16 @@ class MultiMCPClientWrapper:
 def format_tools_for_langchain(
     mcp_tools: List[Dict[str, Any]], 
     multi_client: MultiMCPClientWrapper
-) -> List[Tool]:
+) -> List[StructuredTool]:
     """
-    Convert MCP tools to LangChain Tool format.
+    Convert MCP tools to LangChain StructuredTool format with proper schema handling.
     
     Args:
         mcp_tools: List of MCP tool definitions (as dictionaries)
         multi_client: Multi-MCP client wrapper instance
         
     Returns:
-        List of LangChain Tool objects
+        List of LangChain StructuredTool objects
     """
     langchain_tools = []
     
@@ -265,58 +259,55 @@ def format_tools_for_langchain(
             logger.warning(f"⚠️ Skipping tool with no name: {tool_info}")
             continue
         
+        # Create Pydantic schema from inputSchema
+        args_schema = create_pydantic_schema(tool_name, input_schema)
+        
         # Create wrapper function for this specific tool
         def create_tool_func(name: str, schema: Dict[str, Any], srv_name: str):
             """Create a sync tool function that calls MCP via multi-client."""
             
-            def tool_func(tool_input: Any) -> str:
-                """Synchronous tool function that wraps async MCP call."""
+            def tool_func(**kwargs) -> str:
+                """
+                Synchronous tool function that wraps async MCP call.
+                Accepts keyword arguments matching the tool's input schema.
+                """
                 try:
-                    # Parse input into arguments
-                    logger.info(f"🔍 DEBUG - tool_input type: {type(tool_input)}")
-                    logger.info(f"🔍 DEBUG - tool_input value: {tool_input}")
-                    if isinstance(tool_input, dict):
-                        arguments = tool_input
-                    elif isinstance(tool_input, str):
-                        try:
-                            arguments = json.loads(tool_input)
-                        except json.JSONDecodeError:
-                            # Not valid JSON, fall back to other parsing methods
-                            properties = schema.get('properties', {})
-                            param_names = list(properties.keys())
-                            if '|' in tool_input:
-                                # Pipe-separated format: "arg1|arg2|arg3"
-                                parts = [p.strip() for p in tool_input.split('|')]
-                                arguments = {}
-                                for i, param_name in enumerate(param_names):
-                                    if i < len(parts) and parts[i]:
-                                        arguments[param_name] = parts[i]
-                            else:
-                                # Single parameter
-                                if param_names:
-                                    arguments = {param_names[0]: tool_input}
-                                else:
-                                    arguments = {"input": tool_input}
-                    else:
-                        arguments = {"input": str(tool_input)}
+                    logger.info(f"🔧 Calling tool: {name}")
+                    logger.info(f"📥 Input kwargs: {kwargs}")
+                    
+                    # kwargs already contains the parsed arguments
+                    arguments = kwargs
+                    
+                    # Validate required parameters
+                    required_params = schema.get('required', [])
+                    missing_params = [p for p in required_params if p not in arguments]
+                    if missing_params:
+                        return f"❌ Missing required parameters: {', '.join(missing_params)}"
                     
                     # Call tool via multi-client (routes to correct server)
                     result = multi_client.call_tool(name, arguments)
+                    
+                    logger.info(f"✅ Tool {name} executed successfully")
+                    logger.info(f"📤 Result preview: {str(result)[:200]}...")
+                    
                     return result
                     
                 except Exception as e:
                     error_msg = f"Error calling {name} on {srv_name}: {str(e)}"
                     logger.error(error_msg)
+                    logger.exception("Full traceback:")
                     return f"❌ {error_msg}"
             
             return tool_func
         
-        # Create LangChain tool
-        langchain_tool = Tool(
+        # Create LangChain StructuredTool with proper schema
+        langchain_tool = StructuredTool(
             name=tool_name,
             func=create_tool_func(tool_name, input_schema, server_name),
-            description=f"{tool_description} [Server: {server_name}]"
+            description=f"{tool_description} [Server: {server_name}]",
+            args_schema=args_schema,
         )
+        langchain_tool.metadata = {"server": server_name}
         
         langchain_tools.append(langchain_tool)
         logger.info(f"  ✓ Registered: {tool_name} (from {server_name})")
@@ -324,7 +315,78 @@ def format_tools_for_langchain(
     return langchain_tools
 
 
-def get_langchain_tools(server_configs: List[MCPServerConfig]) -> List[Tool]:
+def create_pydantic_schema(tool_name: str, input_schema: Dict[str, Any]) -> type[BaseModel]:
+    """
+    Create a Pydantic model from MCP input schema.
+    
+    Args:
+        tool_name: Name of the tool (for model naming)
+        input_schema: JSON schema for tool inputs
+        
+    Returns:
+        Pydantic BaseModel class
+    """
+    if not input_schema or 'properties' not in input_schema:
+        # No schema provided - create empty model
+        return type(f"{tool_name}Args", (BaseModel,), {})
+    
+    properties = input_schema.get('properties', {})
+    required = set(input_schema.get('required', []))
+    
+    # Build field definitions for Pydantic model
+    field_definitions = {}
+    
+    for prop_name, prop_schema in properties.items():
+        prop_type = prop_schema.get('type', 'string')
+        prop_description = prop_schema.get('description', '')
+        
+        # Map JSON schema types to Python types
+        python_type = map_json_type_to_python(prop_type)
+        
+        # Make field optional if not required
+        if prop_name not in required:
+            python_type = Optional[python_type]
+            default_value = None
+        else:
+            default_value = ...  # Required field
+        
+        # Create Field with description
+        field_definitions[prop_name] = (
+            python_type,
+            Field(default_value, description=prop_description)
+        )
+    
+    # Create dynamic Pydantic model
+    model_name = f"{tool_name.replace('-', '_').replace(' ', '_')}Args"
+    DynamicModel = create_model(model_name, **field_definitions)
+    
+    return DynamicModel
+
+
+def map_json_type_to_python(json_type: str) -> type:
+    """
+    Map JSON schema types to Python types.
+    
+    Args:
+        json_type: JSON schema type string
+        
+    Returns:
+        Python type
+    """
+    type_mapping = {
+        'string': str,
+        'number': float,
+        'integer': int,
+        'boolean': bool,
+        'array': list,
+        'object': dict,
+        'null': type(None)
+    }
+    
+    return type_mapping.get(json_type, str)  # Default to str if unknown
+
+
+def get_langchain_tools(server_configs: List[MCPServerConfig]) -> List[StructuredTool]:
     """
     Get LangChain tools from multiple MCP servers.
     
@@ -332,7 +394,7 @@ def get_langchain_tools(server_configs: List[MCPServerConfig]) -> List[Tool]:
         server_configs: List of MCP server configurations
         
     Returns:
-        List of LangChain Tool objects
+        List of LangChain StructuredTool objects
     """
     logger.info(f"🔌 Connecting to {len(server_configs)} MCP servers...")
     
