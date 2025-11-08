@@ -9,13 +9,14 @@ from fastmcp import Client
 
 # Test configuration
 RAG_MCP_URL = "http://localhost:8001/mcp"  # HTTP transport
-TEST_FILE = "test_document1.txt"
+TEST_FILE = "test_document2.txt"
 TEST_CONTENT = """
 Artificial Intelligence (AI) is transforming the world.
 Machine learning is a subset of AI focused on learning from data.
 Natural Language Processing enables computers to understand human language.
 Computer vision allows machines to interpret visual information.
 Deep learning uses neural networks with multiple layers.
+sathvika's email: sathvika495@gmail.com
 """
 
 

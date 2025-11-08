@@ -2,8 +2,9 @@
 Pydantic models for request/response validation.
 """
 from pydantic import BaseModel, Field
-from typing import List, Literal
+from typing import List, Literal, Any, TypedDict, Optional, Dict
 from datetime import datetime
+from dataclasses import dataclass
 
 
 class Message(BaseModel):
@@ -42,3 +43,45 @@ class ConversationHistory(BaseModel):
     def clear(self) -> None:
         """Clear conversation history."""
         self.messages.clear()
+
+
+@dataclass
+class MCPServerConfig:
+    """Configuration for an MCP server"""
+    name: str
+    url: str
+    description: str
+
+
+class SubTask(TypedDict):
+    """Single subtask in the execution plan"""
+    step: int
+    tool: str
+    params: Dict[str, Any]  # Minimal params + placeholders
+    depends_on: Optional[List[int]]  # Which steps must complete first
+    status: str  # "pending" | "executing" | "completed" | "failed"
+    result: Optional[Any]  # Tool execution result
+    error: Optional[str]  # Error message if failed
+
+
+class JarvisState(TypedDict):
+    """State flowing through the LangGraph"""
+    # Input
+    user_message: str
+    chat_history: List[tuple]  # Previous conversation context
+    
+    # MCP and tool context
+    available_tools: List[str]  # Tool names available
+    mcp_servers: List[MCPServerConfig]  # MCP server configs
+    
+    # Planner outputs
+    subtasks: List[SubTask]  # Decomposed plan
+    execution_order: List[int]  # Sequential order of step indices
+    
+    # Executor tracking
+    current_step_index: int  # Which step in execution_order we're on
+    step_results: Dict[int, Any]  # step_id → result mapping
+    
+    # Final output
+    final_response: Optional[str]
+    error: Optional[str]

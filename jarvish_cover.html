@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JarVish Cover</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #f5f5f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .cover {
+            width: 1400px;
+            height: 700px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        
+        /* Simple geometric background pattern */
+        .bg-pattern {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            opacity: 0.1;
+        }
+        
+        .circle {
+            position: absolute;
+            border: 2px solid white;
+            border-radius: 50%;
+        }
+        
+        .circle-1 { width: 400px; height: 400px; top: -100px; right: -100px; }
+        .circle-2 { width: 300px; height: 300px; bottom: -50px; left: -50px; }
+        .circle-3 { width: 200px; height: 200px; top: 50%; right: 20%; }
+        
+        /* Content */
+        .content {
+            position: relative;
+            z-index: 2;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 0 100px;
+            color: white;
+        }
+        
+        .title {
+            font-size: 120px;
+            font-weight: 900;
+            margin-bottom: 20px;
+            letter-spacing: -3px;
+        }
+        
+        .subtitle {
+            font-size: 42px;
+            font-weight: 300;
+            margin-bottom: 40px;
+            opacity: 0.95;
+        }
+        
+        .description {
+            font-size: 24px;
+            font-weight: 400;
+            opacity: 0.9;
+            max-width: 700px;
+            line-height: 1.4;
+            margin-bottom: 50px;
+        }
+        
+        .tech-stack {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .tech-badge {
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        /* Brain icon */
+        .brain-icon {
+            position: absolute;
+            right: 120px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 280px;
+            opacity: 0.15;
+        }
+    </style>
+</head>
+<body>
+    <div class="cover">
+        <!-- Background pattern -->
+        <div class="bg-pattern">
+            <div class="circle circle-1"></div>
+            <div class="circle circle-2"></div>
+            <div class="circle circle-3"></div>
+        </div>
+        
+        <!-- Brain icon -->
+        <div class="brain-icon">🧠</div>
+        
+        <!-- Content -->
+        <div class="content">
+            <h1 class="title">JarVish</h1>
+            <h2 class="subtitle">The LLM-Powered Personal Agent</h2>
+            <p class="description">
+                Multi-agent orchestration with LangGraph, RAG memory, and MCP tools for email, calendar, and document management
+            </p>
+            <div class="tech-stack">
+                <span class="tech-badge">LangGraph</span>
+                <span class="tech-badge">RAG</span>
+                <span class="tech-badge">MCP</span>
+                <span class="tech-badge">Qdrant</span>
+                <span class="tech-badge">OpenAI</span>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -304,7 +304,7 @@ async def qdrant_search(query: str, top_k: int = 5) -> str:
             
             output += f"Result {i} (Score: {score:.3f}):\n"
             output += f"Source: {payload['filename']} (Chunk {payload['chunk_index'] + 1}/{payload['total_chunks']})\n"
-            output += f"Text: {payload['text'][:300]}...\n\n"
+            output += f"Text: {payload['text']}...\n\n"
         
         logger.info(f"✅ Returned {len(results)} results")
         return output
